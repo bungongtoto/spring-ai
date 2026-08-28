@@ -7,6 +7,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Flux;
 
 @RestController
 public class ChatController {
@@ -21,7 +22,9 @@ public class ChatController {
     public Object chat(@RequestBody UserInput userInput){
         log.info("userInput: {}", userInput);
 
-        ChatClient.ChatClientRequestSpec requestSpec = chatClient.prompt().user(userInput.prompt());
+        ChatClient.ChatClientRequestSpec requestSpec = chatClient
+                .prompt()
+                .user(userInput.prompt());
 
         log.info("requestSpec: {}", requestSpec);
 
@@ -32,5 +35,53 @@ public class ChatController {
 //        log.info("content : {} ",  responseSpec.content());
 
         return responseSpec.chatResponse();
+    }
+
+
+    @PostMapping("/v2/chats")
+    public Object chatV2(@RequestBody UserInput userInput){
+        log.info("userInput: {}", userInput);
+
+        String systemMessage = """
+                You are a helpful assistant, who can answer java based questions.
+                For any other questions, please respond with I don't know in a funny way!
+                """;
+
+        ChatClient.ChatClientRequestSpec requestSpec = chatClient
+                .prompt()
+                .user(userInput.prompt())
+                .system(systemMessage);
+
+        log.info("requestSpec: {}", requestSpec);
+
+        ChatClient.CallResponseSpec responseSpec = requestSpec.call();
+
+        log.info("responseSpec: {}", responseSpec);
+
+//        log.info("content : {} ",  responseSpec.content());
+
+        return responseSpec.chatResponse();
+    }
+
+    /**
+     *  used to provide streaming response
+     * @param userInput
+     * @return
+     */
+    @PostMapping("/v1/chats/stream")
+    public Flux<String> chatWithStream(@RequestBody UserInput userInput){
+       return chatClient
+                .prompt()
+                .user(userInput.prompt())
+                .stream()
+                .content()
+               .doOnNext(s -> log.info("s : {} ", s))
+               .doOnComplete(() -> log.info("completed"))
+               //.onErrorReturn("Error occurred while processing the request")
+               .onErrorResume(throwable -> {
+                   log.error("Error occurred: {}" , throwable.getMessage());
+                   //return Flux.just("Error occurred while processing the request: " + throwable.getMessage());
+                   return Flux.error(new RuntimeException("Error occurred while processing the request: " + throwable.getMessage()));
+               });
     }
 }

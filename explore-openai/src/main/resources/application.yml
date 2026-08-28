@@ -1,0 +1,21 @@
+server:
+  servlet:
+    context-path: /springai
+spring:
+  config:
+    import:
+      - optional:file:.env[.properties]
+      - optional:file:../.env[.properties]
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:${OPENAI_KEY}}
+      chat:
+        options:
+          model: gpt-4
+weather:
+  api-key :
+  api-url : http://api.weatherapi.com/v1
+
+currency-exchange:
+  api-key :
+  base-url: https://openexchangerates.org/api

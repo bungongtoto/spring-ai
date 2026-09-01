@@ -4,12 +4,16 @@ import com.llm.dto.UserInput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 
+import javax.validation.Valid;
+
 @RestController
+@Validated
 public class ChatController {
     private static  final Logger log = LoggerFactory.getLogger(ChatController.class);
     private final ChatClient chatClient;
@@ -19,7 +23,7 @@ public class ChatController {
     }
 
     @PostMapping("/v1/chats")
-    public Object chat(@RequestBody UserInput userInput){
+    public Object chat(@RequestBody @Valid UserInput userInput){
         log.info("userInput: {}", userInput);
 
         ChatClient.ChatClientRequestSpec requestSpec = chatClient
@@ -39,7 +43,7 @@ public class ChatController {
 
 
     @PostMapping("/v2/chats")
-    public Object chatV2(@RequestBody UserInput userInput){
+    public Object chatV2(@RequestBody @Valid UserInput userInput){
         log.info("userInput: {}", userInput);
 
         String systemMessage = """
@@ -69,7 +73,7 @@ public class ChatController {
      * @return
      */
     @PostMapping("/v1/chats/stream")
-    public Flux<String> chatWithStream(@RequestBody UserInput userInput){
+    public Flux<String> chatWithStream(@RequestBody @Valid UserInput userInput){
        return chatClient
                 .prompt()
                 .user(userInput.prompt())

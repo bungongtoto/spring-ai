@@ -1,6 +1,5 @@
 package com.llm.prompt_engineering;
 
-import com.llm.dto.AIResponse;
 import com.llm.dto.UserInput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,16 +64,16 @@ public class PromptInjectionController {
         var response = chatClient.prompt(detectionPrompt).call().content();
         log.info("response : {} ", response);
 
-        return switch (response != null ? response.toLowerCase() : null) {
+        return switch (response != null ? response.trim().toLowerCase() : null) {
             case "unsafe" -> throw new IllegalArgumentException("Potential prompt injection detected");
             case "safe" -> {
                 PromptTemplate promptTemplate = new PromptTemplate(summaryPrompt);
                 var message = promptTemplate.createMessage(Map.of("input", userInput.prompt()));
                 var promptMessage = new Prompt(List.of(message));
                 var requestSpec = chatClient.prompt(promptMessage);
-                var responseSpec = requestSpec.call();
-                log.info("responseSpec : {} ", responseSpec.chatResponse());
-                yield responseSpec.content();
+                var chatResponse = requestSpec.call().chatResponse();
+                log.info("chatResponse : {} ", chatResponse);
+                yield chatResponse.getResult().getOutput().getText();
             }
             case null -> throw new IllegalArgumentException("Got a null response from the model");
             default -> throw new IllegalArgumentException("Invalid response");

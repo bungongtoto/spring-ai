@@ -115,4 +115,35 @@ public class StructuredOutputsController {
 
         return soccerTeams;
     }
+
+
+    @PostMapping("/v1/structured_outputs/entity/map")
+    public Map<String, Object>  structuredOutputsEntityMap(@RequestBody @Valid UserInput userInput) {
+
+        log.info("userInput message : {} ", userInput);
+
+        MapOutputConverter mapOutputConverter = new MapOutputConverter();
+
+        String format = mapOutputConverter.getFormat();
+        String template = """
+        Input: {input}
+        {format}
+        """;
+
+        var promptTemplate = new PromptTemplate(template);
+
+        var message = promptTemplate.createMessage(Map.of("input", userInput.prompt(), "format", format));
+
+        var promptMessage = new Prompt(List.of(message));
+
+        log.info("promptMessage : {} ", promptMessage);
+
+        var soccerTeamsByMap = chatClient.prompt(promptMessage)
+                .call()
+                .content();
+
+        log.info("soccerTeams : {} ", soccerTeamsByMap);
+
+        return mapOutputConverter.convert(soccerTeamsByMap);
+    }
 }

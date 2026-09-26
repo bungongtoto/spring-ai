@@ -108,8 +108,8 @@ public class PromptTypesController {
     @PostMapping("/v1/prompt_types/multi_step")
     public String multistep_1(@RequestBody UserInput userInput) {
         log.info("userInput : {} ", userInput);
-        PromptTemplate promptTemplate = new PromptTemplate(multiStep1);
-//        PromptTemplate promptTemplate = new PromptTemplate(multiStep2);
+//        PromptTemplate promptTemplate = new PromptTemplate(multiStep1);
+        PromptTemplate promptTemplate = new PromptTemplate(multiStep2);
         var message = promptTemplate.createMessage(Map.of("input", userInput.prompt()));
         log.info("prompt : {} ",message.getText());
         var promptMessage = new Prompt(

@@ -58,4 +58,43 @@ public class StructuredOutputsController {
         var responseSpec = requestSpec.call();
         return responseSpec.content();
     }
+
+    @PostMapping("/v1/structured_outputs/fewshot")
+    public String structuredOutputsFewShot(@RequestBody @Valid UserInput userInput) {
+
+        log.info("userInput message : {} ", userInput);
+
+        var promptTemplate = new PromptTemplate(flightBookingFewShot);
+
+        var message = promptTemplate.createMessage(Map.of("input", userInput.prompt(), "jsonexample", CommonUtils.flightJson()));
+
+        var promptMessage = new Prompt(List.of(message));
+
+        var requestSpec = chatClient.prompt(promptMessage);
+
+        log.info("requestSpec : {} ", requestSpec);
+        var responseSpec = requestSpec.call();
+        return responseSpec.content();
+    }
+
+
+    @PostMapping("/v1/structured_outputs/entity")
+    public FlightBooking structuredOutputsEntity(@RequestBody @Valid UserInput userInput) {
+
+        log.info("userInput message : {} ", userInput);
+
+        var promptTemplate = new PromptTemplate(flightBooking);
+
+        var message = promptTemplate.createMessage(Map.of("input", userInput.prompt()));
+
+        var promptMessage = new Prompt(List.of(message));
+
+        var booking = chatClient.prompt(promptMessage)
+                .call()
+                .entity(FlightBooking.class);
+
+        log.info("booking : {} ", booking);
+
+        return booking;
+    }
 }

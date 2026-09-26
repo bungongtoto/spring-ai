@@ -27,6 +27,9 @@ public class PromptTypesController {
         this.chatClient = chatClientBuilder.build();
     }
 
+    @Value("classpath:/prompt-templates/prompt_types/few_shot.st")
+    private Resource fewShotPrompt;
+
     @Value("classpath:/prompt-templates/prompt_types/multi_step_prompt_1.st")
     private Resource multiStep1;
 
@@ -70,9 +73,13 @@ public class PromptTypesController {
                 Answer : unhappy
                 
                 """;
+        SystemPromptTemplate systemPromptTemplate = new SystemPromptTemplate(fewShotPrompt);
+
+        var systemMessage = systemPromptTemplate.createMessage(Map.of("few_shot_prompts", fewShotExamples));
 
         var promptMessage = new Prompt(
                 List.of(
+                        systemMessage,
                         new UserMessage(userInput.prompt())
                 )
         );

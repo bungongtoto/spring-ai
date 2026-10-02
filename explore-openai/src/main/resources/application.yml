@@ -18,9 +18,9 @@ logging:
       springframework:
         ai.chat.client.advisor.SimpleLoggerAdvisor: DEBUG
 weather:
-  api-key :
+  api-key : ${WEATHER_API_KEY}
   api-url : http://api.weatherapi.com/v1
 
 currency-exchange:
-  api-key :
+  api-key : ${OPEN_EXCHANGE_RATE_API_KEY}
   base-url: https://openexchangerates.org/api

@@ -10,6 +10,16 @@ import java.util.function.Function;
 
 @Configuration(proxyBeanMethods = false)
 public class WeatherToolsConfiguration {
+    private final WeatherConfigProperties weatherProps;
 
+    public  WeatherToolsConfiguration(WeatherConfigProperties weatherProps) {
+        this.weatherProps = weatherProps;
+    }
+
+    @Bean
+    @Description("Get current weather conditions for a given city.")
+    public Function<WeatherRequest, WeatherResponse> currentWeatherFunction() {
+        return new WeatherToolsFunction(this.weatherProps);
+    }
 
 }

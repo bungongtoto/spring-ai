@@ -4,6 +4,7 @@ import com.llm.tool_calling.currency.dtos.CurrencyRequest;
 import com.llm.tool_calling.currency.dtos.CurrencyResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.ai.chat.model.ToolContext;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
@@ -20,9 +21,15 @@ public class CurrencyTools {
         this.restClient = restClientBuilder.baseUrl(currencyExchangeConfigProperties.baseUrl()).build();
     }
 
-    @Tool(description = "Get the latest currency exchange rates for a given base currency and symbols")
-    public CurrencyResponse getLatestCurrencyRates(CurrencyRequest request) {
+    @Tool(description = "Get the latest currency exchange rates for a given base currency and symbols", returnDirect = true)
+    public CurrencyResponse getLatestCurrencyRates(CurrencyRequest request, ToolContext toolContext) {
         log.info("Fetching latest currency rates for base: {} and symbols: {}", request.base(), request.symbols());
+
+        if (toolContext != null) {
+            var userId = toolContext.getContext().get("userId");
+
+            log.info("UserId from tool context: {}", userId);
+        }
         try {
             CurrencyResponse response = restClient
                     .get()

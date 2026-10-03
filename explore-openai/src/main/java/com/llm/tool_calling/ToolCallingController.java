@@ -22,6 +22,8 @@ import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.function.FunctionToolCallback;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 public class ToolCallingController {
     private static final Logger log = LoggerFactory.getLogger(ToolCallingController.class);
@@ -48,21 +50,23 @@ public class ToolCallingController {
         this.chatClient = builder
                 .defaultSystem("You are a helpful AI Assistant that can access tools if needed to answer user questions!.")
                 //.defaultToolCallbacks(toolCallback)
-                .defaultTools("currentWeatherFunction")
+                .defaultToolNames("currentWeatherFunction")
                 .build();
         this.openAiChatModel = openAiChatModel;
         this.currencyTools = currencyTools;
     }
 
     @PostMapping("/v1/tool_calling")
-    public String toolCalling(@RequestBody UserInput userInput) {
+    public String toolCalling(@RequestBody UserInput userInput,
+                              @RequestHeader(value = "USER_ID", required = false) String userId) {
 
         var tools = ToolCallbacks.from(new DateTimeTools(), currencyTools);
 
         var requestSpec =  chatClient.prompt()
                 .user(userInput.prompt())
                 .advisors(new SimpleLoggerAdvisor())
-                .toolCallbacks(tools);
+                .toolCallbacks(tools)
+                .toolContext(Map.of("userId", userId));
 
         log.info(" requestSpec : {} ", requestSpec);
 

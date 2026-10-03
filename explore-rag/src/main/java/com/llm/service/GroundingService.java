@@ -8,10 +8,11 @@ import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.prompt.PromptTemplate;
-import org.springframework.ai.vectorstore.SearchRequest;
-import org.springframework.ai.vectorstore.pgvector.PgVectorStore;
+//import org.springframework.ai.vectorstore.SearchRequest;
+//import org.springframework.ai.vectorstore.pgvector.PgVectorStore;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -40,12 +41,32 @@ public class GroundingService {
     @Value("classpath:/prompt-templates/RAG-QA-Prompt.st")
     private Resource ragQAPrompt;
 
+    private String handbookContent;
+
     public GroundingService(ChatClient.Builder chatClientBuilder) {
         this.chatClient = chatClientBuilder.build();
     }
 
     public GroundingResponse grounding(GroundingRequest groundingRequest) {
-       return null;
+        PromptTemplate promptTemplate = new PromptTemplate(ragPrompt);
+        Message message =  promptTemplate.createMessage(
+                Map.of( "input", groundingRequest.prompt(),
+                        "context", handbookContent)
+        );
+
+        Prompt prompt = new Prompt(message);
+
+        String response = chatClient
+                .prompt(prompt)
+                .call()
+                .content();
+        return  new GroundingResponse(response);
+    }
+
+    @PostConstruct
+    public void init() throws  IOException {
+        Path filePath = Paths.get("explore-rag/src/main/resources/docs/technova-handbook.txt");
+        handbookContent = Files.readString(filePath);
     }
 
 }

@@ -22,7 +22,7 @@ public class VectorStoreConfig {
         return PgVectorStore.builder(jdbcTemplate, this.embeddingModel)
                 .initializeSchema(true)
                 .schemaName(PgVectorStore.DEFAULT_SCHEMA_NAME)
-                .vectorTableName("ragdocs")
+                .vectorTableName("ragexplore")
                 .build();
     }
 

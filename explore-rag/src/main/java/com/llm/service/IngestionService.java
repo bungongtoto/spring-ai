@@ -8,6 +8,7 @@ import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 
@@ -32,19 +33,38 @@ public class IngestionService implements CommandLineRunner {
     
     @Override
     public void run(String... args) throws Exception {
-        ingestPdf(faqPdf);
+       if (ingestionEnabled){
+           ingestPdf(faqPdf);
+           log.info("CommandLine Ingestion is enabled and completed ingestion");
+       }else {
+           log.info("CommandLine Ingestion is disabled");
+       }
     }
 
     private void ingestPdf(Resource faqPdfResource) {
 
-        if (ingestionEnabled){
-            List<Document> docs = new PagePdfDocumentReader(faqPdfResource).get();
+        List<Document> docs = new PagePdfDocumentReader(faqPdfResource).get();
 
-            log.info(" PDF Document Content : {} , size: {} ", docs, docs.size());
-            vectorStore.add(docs);
-            log.info("Added {} documents to vector store", docs.size());
-        }else {
-            log.info("Ingestion is disabled");
-        }
+        log.info(" PDF Document Content : {} , size: {} ", docs, docs.size());
+        vectorStore.add(docs);
+        log.info("Added {} documents to vector store", docs.size());
+    }
+
+    public  void ingest(byte[] fileContent, String originalFileName, String ingestType) {
+
+        log.info("IngestionService is invoked - ingesting file: {} of type: {}", originalFileName, ingestType);
+
+        Resource docSource = new ByteArrayResource(fileContent){
+
+            @Override
+            public String getFilename() {
+                return originalFileName;
+            }
+
+        };
+
+        ingestPdf(docSource);
+
+        log.info("Successfully ingested file: {} of type: {}", originalFileName, ingestType);
     }
 }

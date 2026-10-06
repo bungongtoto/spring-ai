@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.reader.pdf.PagePdfDocumentReader;
+import org.springframework.ai.reader.pdf.ParagraphPdfDocumentReader;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,20 +35,34 @@ public class IngestionService implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
        if (ingestionEnabled){
-           ingestPdf(faqPdf);
+           ingestPdf("page",faqPdf);
            log.info("CommandLine Ingestion is enabled and completed ingestion");
        }else {
            log.info("CommandLine Ingestion is disabled");
        }
     }
 
-    private void ingestPdf(Resource faqPdfResource) {
+    private void ingestPdf(String ingestType, Resource faqPdfResource) {
+        log.info("Ingesting PDF with ingest type: {}", ingestType);
 
-        List<Document> docs = new PagePdfDocumentReader(faqPdfResource).get();
+        List<Document> docs = getPDFDocuments(ingestType, faqPdfResource);
 
-        log.info(" PDF Document Content : {} , size: {} ", docs, docs.size());
         vectorStore.add(docs);
         log.info("Added {} documents to vector store", docs.size());
+    }
+
+    private List<Document> getPDFDocuments(String ingestType, Resource pdfResource){
+        try {
+            return switch (ingestType) {
+                case "page" -> new PagePdfDocumentReader(pdfResource).get();
+                case "paragraph" -> new ParagraphPdfDocumentReader(pdfResource).get();
+                default -> throw new IllegalArgumentException("Invalid ingest type: " + ingestType);
+            };
+        } catch (Exception e) {
+            log.error("Error reading PDF document: {}", e.getMessage(), e);
+            throw new RuntimeException("Error while reading PDF document",e);
+        }
+
     }
 
     public  void ingest(byte[] fileContent, String originalFileName, String ingestType) {
@@ -63,7 +78,7 @@ public class IngestionService implements CommandLineRunner {
 
         };
 
-        ingestPdf(docSource);
+        ingestPdf(ingestType,docSource);
 
         log.info("Successfully ingested file: {} of type: {}", originalFileName, ingestType);
     }

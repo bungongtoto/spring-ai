@@ -1,10 +1,12 @@
 package com.llm.service;
 
+import com.llm.utils.RagUtiils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.reader.pdf.PagePdfDocumentReader;
 import org.springframework.ai.reader.pdf.ParagraphPdfDocumentReader;
+import org.springframework.ai.reader.tika.TikaDocumentReader;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -42,14 +44,7 @@ public class IngestionService implements CommandLineRunner {
        }
     }
 
-    private void ingestPdf(String ingestType, Resource faqPdfResource) {
-        log.info("Ingesting PDF with ingest type: {}", ingestType);
 
-        List<Document> docs = getPDFDocuments(ingestType, faqPdfResource);
-
-        vectorStore.add(docs);
-        log.info("Added {} documents to vector store", docs.size());
-    }
 
     private List<Document> getPDFDocuments(String ingestType, Resource pdfResource){
         try {
@@ -78,8 +73,36 @@ public class IngestionService implements CommandLineRunner {
 
         };
 
-        ingestPdf(ingestType,docSource);
+        String fileExtention  = RagUtiils.getFileExtension(originalFileName);
+        switch (fileExtention){
+            case "pdf" -> {
+                log.info("Ingesting PDF file: {}", originalFileName);
+                ingestPdf(ingestType,docSource);
+            }
+            case "docx" -> {
+                log.info("Ingesting DOCX file: {}", originalFileName);
+                ingestWordDocs(originalFileName, ingestType, docSource);
+            }
+            default -> throw new IllegalArgumentException("Unsupported file type: " + fileExtention);
+        }
 
         log.info("Successfully ingested file: {} of type: {}", originalFileName, ingestType);
+    }
+
+    private void ingestPdf(String ingestType, Resource faqPdfResource) {
+        log.info("Ingesting PDF with ingest type: {}", ingestType);
+
+        List<Document> docs = getPDFDocuments(ingestType, faqPdfResource);
+
+        vectorStore.add(docs);
+        log.info("Added {} documents to vector store", docs.size());
+    }
+
+    private void ingestWordDocs(String originalFileName, String ingestType, Resource docSource) {
+        log.info("Ingesting Word document: {} with ingest type: {}", originalFileName, ingestType);
+
+        List<Document> docs = new TikaDocumentReader(docSource).get();
+        vectorStore.add(docs);
+        log.info("Added {} documents to vector store", docs.size());
     }
 }

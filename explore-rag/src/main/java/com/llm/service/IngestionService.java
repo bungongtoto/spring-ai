@@ -7,6 +7,7 @@ import org.springframework.ai.document.Document;
 import org.springframework.ai.reader.pdf.PagePdfDocumentReader;
 import org.springframework.ai.reader.pdf.ParagraphPdfDocumentReader;
 import org.springframework.ai.reader.tika.TikaDocumentReader;
+import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -101,8 +102,21 @@ public class IngestionService implements CommandLineRunner {
     private void ingestWordDocs(String originalFileName, String ingestType, Resource docSource) {
         log.info("Ingesting Word document: {} with ingest type: {}", originalFileName, ingestType);
 
-        List<Document> docs = new TikaDocumentReader(docSource).get();
+        List<Document> docs = getWordDocument(docSource, ingestType);
         vectorStore.add(docs);
         log.info("Added {} documents to vector store", docs.size());
+    }
+
+    private  static  List<Document> getWordDocument(Resource docSource, String ingestType){
+        List<Document> docs = new TikaDocumentReader(docSource).get();
+
+        return switch (ingestType) {
+            case "token" -> {
+                TokenTextSplitter splitter = new TokenTextSplitter();
+                yield splitter.apply(docs);
+            }
+
+            default -> docs;
+        };
     }
 }

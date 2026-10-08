@@ -4,6 +4,7 @@ import com.llm.utils.RagUtiils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.document.Document;
+import org.springframework.ai.reader.TextReader;
 import org.springframework.ai.reader.pdf.PagePdfDocumentReader;
 import org.springframework.ai.reader.pdf.ParagraphPdfDocumentReader;
 import org.springframework.ai.reader.tika.TikaDocumentReader;
@@ -84,10 +85,23 @@ public class IngestionService implements CommandLineRunner {
                 log.info("Ingesting DOCX file: {}", originalFileName);
                 ingestWordDocs(originalFileName, ingestType, docSource);
             }
+            case "txt" -> {
+                log.info("Ingesting TXT file: {}", originalFileName);
+                ingestTextDocs(originalFileName, ingestType, docSource);
+            }
             default -> throw new IllegalArgumentException("Unsupported file type: " + fileExtention);
         }
 
         log.info("Successfully ingested file: {} of type: {}", originalFileName, ingestType);
+    }
+
+    private void ingestTextDocs(String originalFileName, String ingestType, Resource docSource) {
+        log.info("Ingesting Text document: {} with ingest type: {}", originalFileName, ingestType);
+        TextReader textReader = new TextReader(docSource);
+        textReader.getCustomMetadata().put("filename", originalFileName);
+        List<Document> docs = textReader.get();
+        vectorStore.add(docs);
+        log.info("Added {} documents to vector store", docs.size());
     }
 
     private void ingestPdf(String ingestType, Resource faqPdfResource) {

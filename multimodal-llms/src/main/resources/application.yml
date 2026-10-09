@@ -24,4 +24,7 @@ spring:
         options:
           model: gpt-image-1
           quality: medium
+          height: 1024
+          width: 1024
+
 

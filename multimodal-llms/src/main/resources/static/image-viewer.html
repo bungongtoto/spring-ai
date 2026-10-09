@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Image Generator</title>
+    <style>
+        :root {
+            color-scheme: light dark;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            background: #f7f7f4;
+            color: #1e1f24;
+        }
+
+        main {
+            width: min(960px, calc(100% - 32px));
+            margin: 32px auto;
+        }
+
+        h1 {
+            margin: 0 0 16px;
+            font-size: 28px;
+            line-height: 1.2;
+        }
+
+        label {
+            display: block;
+            margin: 18px 0 8px;
+            font-weight: 700;
+        }
+
+        input, textarea {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px;
+            border: 1px solid #b9bbb6;
+            border-radius: 6px;
+            font: 14px/1.45 ui-monospace, SFMono-Regular, Consolas, monospace;
+        }
+
+        input {
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        textarea {
+            min-height: 180px;
+            resize: vertical;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 12px 0 20px;
+        }
+
+        button, a.download {
+            border: 0;
+            border-radius: 6px;
+            background: #2157a4;
+            color: white;
+            padding: 10px 14px;
+            font: inherit;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            cursor: wait;
+            opacity: 0.7;
+        }
+
+        button.secondary {
+            background: #555b64;
+        }
+
+        .status {
+            min-height: 22px;
+            margin-bottom: 12px;
+            color: #8b1e1e;
+        }
+
+        img {
+            display: none;
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #cfd1cc;
+            border-radius: 6px;
+            background: white;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: #17191c;
+                color: #eceef2;
+            }
+
+            input, textarea {
+                background: #23262b;
+                color: #eceef2;
+                border-color: #4b5058;
+            }
+
+            img {
+                border-color: #4b5058;
+            }
+        }
+    </style>
+</head>
+<body>
+<main>
+    <h1>Image Generator</h1>
+
+    <label for="prompt">Prompt</label>
+    <input id="prompt" type="text" placeholder="A cinematic photo of a golden retriever wearing sunglasses on a beach at sunset">
+
+    <div class="actions">
+        <button type="button" id="generate">Generate image</button>
+    </div>
+
+    <label for="input">Response JSON or b64Json</label>
+    <textarea id="input" placeholder="The generated response will appear here. You can also paste either the b64Json value or the full JSON response."></textarea>
+
+    <div class="actions">
+        <button type="button" id="show">Show pasted image</button>
+        <button type="button" id="clear" class="secondary">Clear</button>
+        <a id="download" class="download" download="generated-image.png" href="#" hidden>Download PNG</a>
+    </div>
+
+    <div id="status" class="status"></div>
+    <img id="preview" alt="Generated image preview">
+</main>
+
+<script>
+    const input = document.getElementById("input");
+    const prompt = document.getElementById("prompt");
+    const generate = document.getElementById("generate");
+    const preview = document.getElementById("preview");
+    const status = document.getElementById("status");
+    const download = document.getElementById("download");
+
+    function findBase64Image(value) {
+        const trimmed = value.trim();
+
+        if (!trimmed) {
+            return "";
+        }
+
+        if (trimmed.startsWith("data:image/")) {
+            return trimmed;
+        }
+
+        if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) {
+            return `data:image/png;base64,${trimmed}`;
+        }
+
+        const parsed = JSON.parse(trimmed);
+        const springAiBase64 = parsed?.result?.output?.b64Json;
+
+        if (typeof springAiBase64 === "string") {
+            return `data:image/png;base64,${springAiBase64}`;
+        }
+
+        const stack = [parsed];
+
+        while (stack.length > 0) {
+            const current = stack.pop();
+
+            if (!current || typeof current !== "object") {
+                continue;
+            }
+
+            if (typeof current.b64Json === "string") {
+                return `data:image/png;base64,${current.b64Json}`;
+            }
+
+            if (typeof current.b64_json === "string") {
+                return `data:image/png;base64,${current.b64_json}`;
+            }
+
+            for (const value of Object.values(current)) {
+                if (Array.isArray(value)) {
+                    stack.push(...value);
+                } else if (value && typeof value === "object") {
+                    stack.push(value);
+                }
+            }
+        }
+
+        return "";
+    }
+
+    function showImageFromInput() {
+        try {
+            const imageUrl = findBase64Image(input.value);
+
+            if (!imageUrl) {
+                throw new Error("No b64Json or b64_json field found.");
+            }
+
+            preview.src = imageUrl;
+            preview.style.display = "block";
+            download.href = imageUrl;
+            download.hidden = false;
+            status.textContent = "";
+        } catch (error) {
+            preview.removeAttribute("src");
+            preview.style.display = "none";
+            download.hidden = true;
+            status.textContent = error.message;
+        }
+    }
+
+    generate.addEventListener("click", async () => {
+        const promptValue = prompt.value.trim();
+
+        if (!promptValue) {
+            status.textContent = "Enter a prompt first.";
+            prompt.focus();
+            return;
+        }
+
+        generate.disabled = true;
+        status.textContent = "Generating image...";
+
+        try {
+            const response = await fetch("v1/images", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    prompt: promptValue
+                })
+            });
+
+            const responseText = await response.text();
+
+            if (!response.ok) {
+                throw new Error(responseText || `Request failed with status ${response.status}`);
+            }
+
+            try {
+                input.value = JSON.stringify(JSON.parse(responseText), null, 2);
+            } catch {
+                input.value = responseText;
+            }
+
+            showImageFromInput();
+        } catch (error) {
+            preview.removeAttribute("src");
+            preview.style.display = "none";
+            download.hidden = true;
+            status.textContent = error.message;
+        } finally {
+            generate.disabled = false;
+        }
+    });
+
+    document.getElementById("show").addEventListener("click", () => {
+        showImageFromInput();
+    });
+
+    document.getElementById("clear").addEventListener("click", () => {
+        input.value = "";
+        prompt.value = "";
+        preview.removeAttribute("src");
+        preview.style.display = "none";
+        download.hidden = true;
+        status.textContent = "";
+    });
+</script>
+</body>
+</html>

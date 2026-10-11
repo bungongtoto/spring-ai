@@ -33,5 +33,13 @@ spring:
             voice: alloy #lloy, ash, ballad, coral, echo, fable, onyx, nova, sage, shimmer, verse, marin, and cedar
             speed: 1.0
             response_format: mp3
+        transcription:
+          options:
+            model: whisper-1
+            prompt: Extract text from the audio file.
+#            response_format: verbose_json
+#            temperature: 0.0
+#            language: en
+
 
 

@@ -33,4 +33,40 @@ public class VisionController {
         this.chatClient = chatClientBuilder
                 .build();
     }
+
+    @PostMapping("/v1/vision")
+    public String vision(@RequestBody UserInput userInput) {
+        log.info("userInput: {}", userInput);
+
+         var imageResource = new ClassPathResource("files/vision/zebra.jpg");
+
+        UserMessage userMessage = UserMessage
+                .builder()
+                .text("Explain what do you see in this picture?")
+                .media(new Media(MimeTypeUtils.IMAGE_JPEG, imageResource))
+                .build();
+
+        ChatClient.CallResponseSpec response = chatClient.prompt(new Prompt(userMessage)).call();
+
+       return response.content();
+    }
+
+    @PostMapping("/v2/vision")
+    public String visionV2(@RequestParam("file") MultipartFile file, @RequestParam("prompt") String prompt){
+        try {
+            log.info("File name: {}, File size: {}, Prompt: {}", file.getOriginalFilename(), file.getSize(), prompt);
+            UserMessage userMessage = UserMessage
+                    .builder()
+                    .text("Explain what do you see in this picture?")
+                    .media(new Media(MimeTypeUtils.IMAGE_PNG, file.getResource()))
+                    .build();
+
+            ChatClient.CallResponseSpec response = chatClient.prompt(new Prompt(userMessage)).call();
+
+            return response.content();
+        }catch (Exception e){
+            log.error("Error processing vision request", e);
+            return "Error processing vision request";
+        }
+    }
 }

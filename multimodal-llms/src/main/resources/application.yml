@@ -26,5 +26,12 @@ spring:
           quality: medium
           height: 1024
           width: 1024
+      audio:
+        speech:
+          options:
+            model: tts-1
+            voice: alloy #lloy, ash, ballad, coral, echo, fable, onyx, nova, sage, shimmer, verse, marin, and cedar
+            speed: 1.0
+            response_format: mp3
 
 

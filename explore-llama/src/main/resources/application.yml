@@ -1,5 +1,5 @@
 server:
-  port: 8081
+  port: 8084
   servlet:
     context-path: /springai
 spring:
@@ -11,5 +11,5 @@ spring:
     ollama:
       chat:
         options:
-          model: llama3
+          model: llama3.1
 
